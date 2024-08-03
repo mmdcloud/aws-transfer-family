@@ -48,12 +48,12 @@ resource "aws_iam_role_policy" "iam_role_policy" {
 }
 
 # AWS Transfer Access
-resource "aws_transfer_access" "s3_transfer_access" {
-  external_id    = "S-1-1-12-1234567890-123456789-1234567890-1234"
-  server_id      = aws_transfer_server.transfer_server.id
-  role           = aws_iam_role.transfer_iam_role.arn
-  home_directory = "/${aws_s3_bucket.transfer_bucket.id}/"
-}
+# resource "aws_transfer_access" "s3_transfer_access" {
+#   external_id    = "S-1-1-12-1234567890-123456789-1234567890-1234"
+#   server_id      = aws_transfer_server.transfer_server.id
+#   role           = aws_iam_role.transfer_iam_role.arn
+#   home_directory = "/${aws_s3_bucket.transfer_bucket.id}/"
+# }
 
 # AWS Transfer Family Workflow
 resource "aws_transfer_workflow" "transfer_workflow" {
@@ -73,11 +73,11 @@ resource "aws_transfer_workflow" "transfer_workflow" {
 
 # AWS Transfer Family Server
 resource "aws_transfer_server" "transfer_server" {
-  endpoint_type               = "PUBLIC"
-  sftp_authentication_methods = "PUBLIC_KEY_OR_PASSWORD"
-  force_destroy               = true
-  protocols                   = ["SFTP"]
-  identity_provider_type      = "SERVICE_MANAGED"
+  endpoint_type = "PUBLIC"
+  #   sftp_authentication_methods = "PUBLIC_KEY_OR_PASSWORD"
+  force_destroy          = true
+  protocols              = ["SFTP"]
+  identity_provider_type = "SERVICE_MANAGED"
 
   workflow_details {
     on_partial_upload {

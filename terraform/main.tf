@@ -90,7 +90,6 @@ resource "aws_transfer_server" "transfer_server" {
     }
   }
   domain = "S3"
-
   structured_log_destinations = [
     "${aws_cloudwatch_log_group.transfer_log_group.arn}:*"
   ]

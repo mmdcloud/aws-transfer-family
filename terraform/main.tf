@@ -78,6 +78,7 @@ resource "aws_transfer_server" "transfer_server" {
   force_destroy               = true
   protocols                   = ["SFTP"]
   identity_provider_type      = "SERVICE_MANAGED"
+
   workflow_details {
     on_partial_upload {
       workflow_id    = aws_transfer_workflow.transfer_workflow.id
@@ -89,11 +90,12 @@ resource "aws_transfer_server" "transfer_server" {
     }
   }
   domain = "S3"
+
   structured_log_destinations = [
     "${aws_cloudwatch_log_group.transfer_log_group.arn}:*"
   ]
   s3_storage_options {
-    directory_listing_optimization = "DISABLED"
+    directory_listing_optimization = "ENABLED"
   }
 }
 

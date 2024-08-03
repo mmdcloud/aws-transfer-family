@@ -60,7 +60,7 @@ resource "aws_transfer_workflow" "transfer_workflow" {
   description = "Transfer Family Workflow"
   steps {
     tag_step_details {
-      name                 = "tag step"
+      name                 = "tag_step"
       source_file_location = "$${original.file}"
       tags {
         key   = "Name"

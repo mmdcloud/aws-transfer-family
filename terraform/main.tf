@@ -81,11 +81,11 @@ resource "aws_transfer_server" "transfer_server" {
   workflow_details {
     on_partial_upload {
       workflow_id    = aws_transfer_workflow.transfer_workflow.id
-      execution_role = aws_iam_role.transfer_iam_role.id
+      execution_role = aws_iam_role.transfer_iam_role.arn
     }
     on_upload {
       workflow_id    = aws_transfer_workflow.transfer_workflow.id
-      execution_role = aws_iam_role.transfer_iam_role.id
+      execution_role = aws_iam_role.transfer_iam_role.arn
     }
   }
   domain = "S3"

@@ -1,9 +1,9 @@
 # S3 Bucket for stogin files 
 resource "aws_s3_bucket" "transfer_bucket" {
-  bucket = "theplayer007-transfer-bucket"
+  bucket = "madmax-transfer-bucket"
 
   tags = {
-    Name = "theplayer007-transfer-bucket"
+    Name = "madmax-transfer-bucket"
   }
 }
 

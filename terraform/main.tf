@@ -1,124 +1,163 @@
-# S3 Bucket for stogin files 
+# Create S3 bucket for file storage
 resource "aws_s3_bucket" "transfer_bucket" {
-  bucket = "madmax-transfer-bucket"
-
-  tags = {
-    Name = "madmax-transfer-bucket"
-  }
+  bucket = "my-sftp-bucket-${random_id.bucket_suffix.hex}"
+  force_destroy = true # For demo purposes only
 }
 
-# Cloudwatch Log Group for storing logs
-resource "aws_cloudwatch_log_group" "transfer_log_group" {
-  name_prefix = "transfer_log_group_"
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
 }
 
-# IAM Role Mapping
-data "aws_iam_policy_document" "transfer_iam_policy_document" {
+# IAM Role for Transfer Family with correct assume role policy
+resource "aws_iam_role" "transfer_role" {
+  name = "transfer-family-s3-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "transfer.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# Correct bucket policy with proper principal
+resource "aws_s3_bucket_policy" "transfer_policy" {
+  bucket = aws_s3_bucket.transfer_bucket.id
+  policy = data.aws_iam_policy_document.transfer_s3_access.json
+}
+
+data "aws_iam_policy_document" "transfer_s3_access" {
+  # Policy for Transfer service to access the bucket
   statement {
-    effect = "Allow"
-
     principals {
       type        = "Service"
       identifiers = ["transfer.amazonaws.com"]
     }
-
-    actions = ["sts:AssumeRole"]
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation"
+    ]
+    resources = [aws_s3_bucket.transfer_bucket.arn]
   }
-}
 
-resource "aws_iam_role" "transfer_iam_role" {
-  name                = "transfer-family-role"
-  assume_role_policy  = data.aws_iam_policy_document.transfer_iam_policy_document.json
-  managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AWSTransferLoggingAccess"]
-}
-
-data "aws_iam_policy_document" "s3_iam_policy_document" {
+  # Policy for Transfer service to access objects
   statement {
-    sid       = "AllowFullAccesstoS3"
-    effect    = "Allow"
-    actions   = ["s3:*"]
-    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["transfer.amazonaws.com"]
+    }
+    actions = [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DeleteObject",
+      "s3:GetObjectVersion",
+      "s3:DeleteObjectVersion"
+    ]
+    resources = ["${aws_s3_bucket.transfer_bucket.arn}/*"]
+  }
+
+  # Policy for the IAM role to access the bucket
+  statement {
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.transfer_role.arn]
+    }
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation"
+    ]
+    resources = [aws_s3_bucket.transfer_bucket.arn]
+  }
+
+  # Policy for the IAM role to access objects
+  statement {
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.transfer_role.arn]
+    }
+    actions = [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DeleteObject",
+      "s3:GetObjectVersion",
+      "s3:DeleteObjectVersion"
+    ]
+    resources = ["${aws_s3_bucket.transfer_bucket.arn}/*"]
   }
 }
 
-resource "aws_iam_role_policy" "iam_role_policy" {
-  name   = "transfer-iam-role-policy"
-  role   = aws_iam_role.transfer_iam_role.id
-  policy = data.aws_iam_policy_document.s3_iam_policy_document.json
-}
+# IAM Policy for Transfer Family role
+resource "aws_iam_role_policy" "transfer_policy" {
+  name = "transfer-s3-access"
+  role = aws_iam_role.transfer_role.id
 
-# AWS Transfer Access
-# resource "aws_transfer_access" "s3_transfer_access" {
-#   external_id    = "S-1-1-12-1234567890-123456789-1234567890-1234"
-#   server_id      = aws_transfer_server.transfer_server.id
-#   role           = aws_iam_role.transfer_iam_role.arn
-#   home_directory = "/${aws_s3_bucket.transfer_bucket.id}/"
-# }
-
-# AWS Transfer Family Workflow
-resource "aws_transfer_workflow" "transfer_workflow" {
-  description = "Transfer Family Workflow"
-  steps {
-    tag_step_details {
-      name                 = "tag_step"
-      source_file_location = "$${original.file}"
-      tags {
-        key   = "Name"
-        value = "Hello World"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Resource = [aws_s3_bucket.transfer_bucket.arn]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:GetObjectVersion",
+          "s3:DeleteObjectVersion"
+        ]
+        Resource = ["${aws_s3_bucket.transfer_bucket.arn}/*"]
       }
-    }
-    type = "TAG"
-  }
+    ]
+  })
 }
 
-# AWS Transfer Family Server
-resource "aws_transfer_server" "transfer_server" {
-  endpoint_type = "PUBLIC"
-  #   sftp_authentication_methods = "PUBLIC_KEY_OR_PASSWORD"
-  force_destroy          = true
-  protocols              = ["SFTP"]
+# Rest of your Transfer Family configuration remains the same...
+resource "aws_secretsmanager_secret" "sftp_user" {
+  name = "sftp-user-credentials"
+}
+
+resource "aws_secretsmanager_secret_version" "sftp_user_creds" {
+  secret_id = aws_secretsmanager_secret.sftp_user.id
+  secret_string = jsonencode({
+    username = "sftp-user"
+    password = random_password.sftp_password.result
+  })
+}
+
+resource "random_password" "sftp_password" {
+  length           = 16
+  special          = true
+  override_special = "!@#$%^&*()"
+}
+
+resource "aws_transfer_server" "sftp_server" {
   identity_provider_type = "SERVICE_MANAGED"
+  protocols             = ["SFTP"]
+  endpoint_type         = "PUBLIC"
+  domain               = "S3"
 
-  workflow_details {
-    on_partial_upload {
-      workflow_id    = aws_transfer_workflow.transfer_workflow.id
-      execution_role = aws_iam_role.transfer_iam_role.arn
-    }
-    on_upload {
-      workflow_id    = aws_transfer_workflow.transfer_workflow.id
-      execution_role = aws_iam_role.transfer_iam_role.arn
-    }
-  }
-  domain = "S3"
-  structured_log_destinations = [
-    "${aws_cloudwatch_log_group.transfer_log_group.arn}:*"
-  ]
-  s3_storage_options {
-    directory_listing_optimization = "ENABLED"
+  logging_role = aws_iam_role.transfer_role.arn
+
+  tags = {
+    Name = "demo-sftp-server"
   }
 }
 
-# SSH Key Pair
-# resource "tls_private_key" "madmaxtlskey" {
-#   algorithm = "RSA"
-#   rsa_bits  = 4096
-# }
-
-# resource "aws_transfer_ssh_key" "madmaxtransferkey" {
-#   server_id = aws_transfer_server.transfer_server.id
-#   user_name = aws_transfer_user.transfer_user.user_name
-#   body      = trimspace(tls_private_key.madmaxtlskey.public_key_openssh)
-# }
-
-# # AWS Transfer Family User
-# resource "aws_transfer_user" "transfer_user" {
-#   server_id = aws_transfer_server.transfer_server.id
-#   user_name = "madmax"
-#   role      = aws_iam_role.transfer_iam_role.id
-
-#   home_directory_type = "PATH"
-#   home_directory_mappings {
-#     entry  = "/test.pdf"
-#     target = "/bucket3/test-path/tftestuser.pdf"
-#   }
-# }
+resource "aws_transfer_user" "sftp_user" {
+  server_id      = aws_transfer_server.sftp_server.id
+  user_name      = jsondecode(aws_secretsmanager_secret_version.sftp_user_creds.secret_string)["username"]
+  role           = aws_iam_role.transfer_role.arn
+  home_directory = "/${aws_s3_bucket.transfer_bucket.id}"
+}

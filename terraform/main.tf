@@ -1,3 +1,7 @@
+# -----------------------------------------------------------------------------------------
+# Random configuration
+# -----------------------------------------------------------------------------------------
+
 resource "random_id" "bucket_suffix" {
   byte_length = 4
 }
@@ -8,13 +12,31 @@ resource "random_password" "sftp_password" {
   override_special = "!@#$%^&*()"
 }
 
-# Create S3 bucket for file storage
-resource "aws_s3_bucket" "transfer_bucket" {
-  bucket        = "my-sftp-bucket-${random_id.bucket_suffix.hex}"
-  force_destroy = true
+# -----------------------------------------------------------------------------------------
+# S3 bucket for storing uploaded files
+# -----------------------------------------------------------------------------------------
+
+module "storage_bucket" {
+  source        = "./modules/s3"
+  bucket_name   = "sftp-bucket-${random_id.bucket_suffix.hex}"
+  objects       = []
+  bucket_policy = ""
+  cors = [
+    {
+      allowed_headers = ["*"]
+      allowed_methods = ["GET"]
+      allowed_origins = ["*"]
+      max_age_seconds = 3000
+    }
+  ]
+  versioning_enabled = "Enabled"
+  force_destroy      = true
 }
 
-# IAM Role for Transfer Family with correct assume role policy
+# -----------------------------------------------------------------------------------------
+# IAM configuration for Transfer family
+# -----------------------------------------------------------------------------------------
+
 resource "aws_iam_role" "transfer_role" {
   name = "transfer-family-s3-role"
 
@@ -32,14 +54,12 @@ resource "aws_iam_role" "transfer_role" {
   })
 }
 
-# Correct bucket policy with proper principal
 resource "aws_s3_bucket_policy" "transfer_policy" {
-  bucket = aws_s3_bucket.transfer_bucket.id
+  bucket = module.storage_bucket.id
   policy = data.aws_iam_policy_document.transfer_s3_access.json
 }
 
 data "aws_iam_policy_document" "transfer_s3_access" {
-  # Policy for Transfer service to access the bucket
   statement {
     principals {
       type        = "Service"
@@ -49,10 +69,8 @@ data "aws_iam_policy_document" "transfer_s3_access" {
       "s3:ListBucket",
       "s3:GetBucketLocation"
     ]
-    resources = [aws_s3_bucket.transfer_bucket.arn]
+    resources = [module.storage_bucket.arn]
   }
-
-  # Policy for Transfer service to access objects
   statement {
     principals {
       type        = "Service"
@@ -65,10 +83,8 @@ data "aws_iam_policy_document" "transfer_s3_access" {
       "s3:GetObjectVersion",
       "s3:DeleteObjectVersion"
     ]
-    resources = ["${aws_s3_bucket.transfer_bucket.arn}/*"]
+    resources = ["${module.storage_bucket.arn}/*"]
   }
-
-  # Policy for the IAM role to access the bucket
   statement {
     principals {
       type        = "AWS"
@@ -78,10 +94,8 @@ data "aws_iam_policy_document" "transfer_s3_access" {
       "s3:ListBucket",
       "s3:GetBucketLocation"
     ]
-    resources = [aws_s3_bucket.transfer_bucket.arn]
+    resources = [module.storage_bucket.arn]
   }
-
-  # Policy for the IAM role to access objects
   statement {
     principals {
       type        = "AWS"
@@ -94,11 +108,10 @@ data "aws_iam_policy_document" "transfer_s3_access" {
       "s3:GetObjectVersion",
       "s3:DeleteObjectVersion"
     ]
-    resources = ["${aws_s3_bucket.transfer_bucket.arn}/*"]
+    resources = ["${module.storage_bucket.arn}/*"]
   }
 }
 
-# IAM Policy for Transfer Family role
 resource "aws_iam_role_policy" "transfer_policy" {
   name = "transfer-s3-access"
   role = aws_iam_role.transfer_role.id
@@ -112,7 +125,7 @@ resource "aws_iam_role_policy" "transfer_policy" {
           "s3:ListBucket",
           "s3:GetBucketLocation"
         ]
-        Resource = [aws_s3_bucket.transfer_bucket.arn]
+        Resource = [module.storage_bucket.arn]
       },
       {
         Effect = "Allow"
@@ -123,24 +136,31 @@ resource "aws_iam_role_policy" "transfer_policy" {
           "s3:GetObjectVersion",
           "s3:DeleteObjectVersion"
         ]
-        Resource = ["${aws_s3_bucket.transfer_bucket.arn}/*"]
+        Resource = ["${module.storage_bucket.arn}/*"]
       }
     ]
   })
 }
 
-# Rest of your Transfer Family configuration remains the same...
-resource "aws_secretsmanager_secret" "sftp_user" {
-  name = "sftp-user-credentials"
-}
 
-resource "aws_secretsmanager_secret_version" "sftp_user_creds" {
-  secret_id = aws_secretsmanager_secret.sftp_user.id
+# -----------------------------------------------------------------------------------------
+# Secrets Manager
+# -----------------------------------------------------------------------------------------
+
+module "sftp_user_credentials" {
+  source                  = "./modules/secrets-manager"
+  name                    = "sftp-user-credentials"
+  description             = "Secret for storing SFTP user credentials"
+  recovery_window_in_days = 0
   secret_string = jsonencode({
     username = "sftp-user"
     password = random_password.sftp_password.result
   })
 }
+
+# -----------------------------------------------------------------------------------------
+# Transfer family configuration
+# -----------------------------------------------------------------------------------------
 
 resource "aws_transfer_server" "sftp_server" {
   identity_provider_type = "SERVICE_MANAGED"
@@ -157,7 +177,7 @@ resource "aws_transfer_server" "sftp_server" {
 
 resource "aws_transfer_user" "sftp_user" {
   server_id      = aws_transfer_server.sftp_server.id
-  user_name      = jsondecode(aws_secretsmanager_secret_version.sftp_user_creds.secret_string)["username"]
+  user_name      = jsondecode(module.sftp_user_credentials.secret_string)["username"]
   role           = aws_iam_role.transfer_role.arn
-  home_directory = "/${aws_s3_bucket.transfer_bucket.id}"
+  home_directory = "/${module.storage_bucket.id}"
 }

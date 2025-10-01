@@ -3,15 +3,15 @@ output "sftp_server_endpoint" {
 }
 
 output "sftp_username" {
-  value     = jsondecode(aws_secretsmanager_secret_version.sftp_user_creds.secret_string)["username"]
+  value     = jsondecode(module.sftp_user_credentials.secret_string)["username"]
   sensitive = true
 }
 
 output "sftp_password" {
-  value     = jsondecode(aws_secretsmanager_secret_version.sftp_user_creds.secret_string)["password"]
+  value     = jsondecode(module.sftp_user_credentials.secret_string)["password"]
   sensitive = true
 }
 
-output "s3_bucket_name" {
-  value = aws_s3_bucket.transfer_bucket.id
+output "s3_bucket_id" {
+  value = module.storage_bucket.id
 }

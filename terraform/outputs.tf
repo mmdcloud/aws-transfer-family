@@ -3,7 +3,7 @@ output "sftp_server_endpoint" {
 }
 
 output "sftp_username" {
-  value = jsondecode(aws_secretsmanager_secret_version.sftp_user_creds.secret_string)["username"]
+  value     = jsondecode(aws_secretsmanager_secret_version.sftp_user_creds.secret_string)["username"]
   sensitive = true
 }
 

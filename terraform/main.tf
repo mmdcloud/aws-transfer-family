@@ -1,11 +1,17 @@
-# Create S3 bucket for file storage
-resource "aws_s3_bucket" "transfer_bucket" {
-  bucket = "my-sftp-bucket-${random_id.bucket_suffix.hex}"
-  force_destroy = true # For demo purposes only
-}
-
 resource "random_id" "bucket_suffix" {
   byte_length = 4
+}
+
+resource "random_password" "sftp_password" {
+  length           = 16
+  special          = true
+  override_special = "!@#$%^&*()"
+}
+
+# Create S3 bucket for file storage
+resource "aws_s3_bucket" "transfer_bucket" {
+  bucket        = "my-sftp-bucket-${random_id.bucket_suffix.hex}"
+  force_destroy = true
 }
 
 # IAM Role for Transfer Family with correct assume role policy
@@ -136,22 +142,16 @@ resource "aws_secretsmanager_secret_version" "sftp_user_creds" {
   })
 }
 
-resource "random_password" "sftp_password" {
-  length           = 16
-  special          = true
-  override_special = "!@#$%^&*()"
-}
-
 resource "aws_transfer_server" "sftp_server" {
   identity_provider_type = "SERVICE_MANAGED"
-  protocols             = ["SFTP"]
-  endpoint_type         = "PUBLIC"
-  domain               = "S3"
+  protocols              = ["SFTP"]
+  endpoint_type          = "PUBLIC"
+  domain                 = "S3"
 
   logging_role = aws_iam_role.transfer_role.arn
 
   tags = {
-    Name = "demo-sftp-server"
+    Name = "sftp-server"
   }
 }
 

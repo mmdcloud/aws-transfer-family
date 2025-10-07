@@ -1,15 +1,17 @@
 # -----------------------------------------------------------------------------------------
+# TLS private key generation for SFTP user
+# -----------------------------------------------------------------------------------------
+resource "tls_private_key" "tls_private_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+# -----------------------------------------------------------------------------------------
 # Random configuration
 # -----------------------------------------------------------------------------------------
 
 resource "random_id" "bucket_suffix" {
   byte_length = 4
-}
-
-resource "random_password" "sftp_password" {
-  length           = 16
-  special          = true
-  override_special = "!@#$%^&*()"
 }
 
 # -----------------------------------------------------------------------------------------
@@ -37,125 +39,90 @@ module "storage_bucket" {
 # IAM configuration for Transfer family
 # -----------------------------------------------------------------------------------------
 
-resource "aws_iam_role" "transfer_role" {
-  name = "transfer-family-s3-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "transfer.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_s3_bucket_policy" "transfer_policy" {
-  bucket = module.storage_bucket.id
-  policy = data.aws_iam_policy_document.transfer_s3_access.json
-}
-
-data "aws_iam_policy_document" "transfer_s3_access" {
-  statement {
-    principals {
-      type        = "Service"
-      identifiers = ["transfer.amazonaws.com"]
-    }
-    actions = [
-      "s3:ListBucket",
-      "s3:GetBucketLocation"
-    ]
-    resources = [module.storage_bucket.arn]
-  }
-  statement {
-    principals {
-      type        = "Service"
-      identifiers = ["transfer.amazonaws.com"]
-    }
-    actions = [
-      "s3:PutObject",
-      "s3:GetObject",
-      "s3:DeleteObject",
-      "s3:GetObjectVersion",
-      "s3:DeleteObjectVersion"
-    ]
-    resources = ["${module.storage_bucket.arn}/*"]
-  }
-  statement {
-    principals {
-      type        = "AWS"
-      identifiers = [aws_iam_role.transfer_role.arn]
-    }
-    actions = [
-      "s3:ListBucket",
-      "s3:GetBucketLocation"
-    ]
-    resources = [module.storage_bucket.arn]
-  }
-  statement {
-    principals {
-      type        = "AWS"
-      identifiers = [aws_iam_role.transfer_role.arn]
-    }
-    actions = [
-      "s3:PutObject",
-      "s3:GetObject",
-      "s3:DeleteObject",
-      "s3:GetObjectVersion",
-      "s3:DeleteObjectVersion"
-    ]
-    resources = ["${module.storage_bucket.arn}/*"]
-  }
-}
-
-resource "aws_iam_role_policy" "transfer_policy" {
-  name = "transfer-s3-access"
-  role = aws_iam_role.transfer_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:ListBucket",
-          "s3:GetBucketLocation"
+module "transfer_role" {
+  source             = "./modules/iam"
+  role_name          = "transfer-family-s3-role"
+  role_description   = "transfer-family-s3-role"
+  policy_name        = "transfer-family-s3-role-policy"
+  policy_description = "transfer-family-s3-role-policy"
+  assume_role_policy = <<EOF
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "transfer.amazonaws.com"
+                }                
+            }
         ]
-        Resource = [module.storage_bucket.arn]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:DeleteObject",
-          "s3:GetObjectVersion",
-          "s3:DeleteObjectVersion"
+    }
+    EOF
+  policy             = <<EOF
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": [
+                  "s3:ListBucket",
+                  "s3:GetBucketLocation"
+                ],
+                "Resource": "${module.storage_bucket.arn}",
+                "Effect": "Allow"
+            },
+            {
+                "Action": [
+                  "s3:PutObject",
+                  "s3:GetObject",
+                  "s3:DeleteObject",
+                  "s3:GetObjectVersion",
+                  "s3:DeleteObjectVersion"
+                ],
+                "Resource": "${module.storage_bucket.arn}/*",
+                "Effect": "Allow"
+            }            
         ]
-        Resource = ["${module.storage_bucket.arn}/*"]
-      }
-    ]
-  })
+    }
+    EOF
 }
 
-
-# -----------------------------------------------------------------------------------------
-# Secrets Manager
-# -----------------------------------------------------------------------------------------
-
-module "sftp_user_credentials" {
-  source                  = "./modules/secrets-manager"
-  name                    = "sftp-user-credentials"
-  description             = "Secret for storing SFTP user credentials"
-  recovery_window_in_days = 0
-  secret_string = jsonencode({
-    username = "sftp-user"
-    password = random_password.sftp_password.result
-  })
+module "transfer_logging_role" {
+  source             = "./modules/iam"
+  role_name          = "transfer-family-logging-role"
+  role_description   = "transfer-family-logging-role"
+  policy_name        = "transfer-family-logging-role-policy"
+  policy_description = "transfer-family-logging-role-policy"
+  assume_role_policy = <<EOF
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "transfer.amazonaws.com"
+                }                
+            }
+        ]
+    }
+    EOF
+  policy             = <<EOF
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "arn:aws:logs:*:*:*",
+                "Effect": "Allow"
+            }        
+        ]
+    }
+    EOF
 }
 
 # -----------------------------------------------------------------------------------------
@@ -167,9 +134,7 @@ resource "aws_transfer_server" "sftp_server" {
   protocols              = ["SFTP"]
   endpoint_type          = "PUBLIC"
   domain                 = "S3"
-
-  logging_role = aws_iam_role.transfer_role.arn
-
+  logging_role           = module.transfer_logging_role.arn
   tags = {
     Name = "sftp-server"
   }
@@ -177,7 +142,13 @@ resource "aws_transfer_server" "sftp_server" {
 
 resource "aws_transfer_user" "sftp_user" {
   server_id      = aws_transfer_server.sftp_server.id
-  user_name      = jsondecode(module.sftp_user_credentials.secret_string)["username"]
-  role           = aws_iam_role.transfer_role.arn
+  user_name      = var.sftp_user_name
+  role           = module.transfer_role.arn
   home_directory = "/${module.storage_bucket.id}"
+}
+
+resource "aws_transfer_ssh_key" "sftp_ssh_key" {
+  server_id = aws_transfer_server.sftp_server.id
+  user_name = aws_transfer_user.sftp_user.user_name
+  body      = trimspace(tls_private_key.tls_private_key.public_key_openssh)
 }

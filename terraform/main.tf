@@ -9,7 +9,6 @@ resource "tls_private_key" "tls_private_key" {
 # -----------------------------------------------------------------------------------------
 # Random configuration
 # -----------------------------------------------------------------------------------------
-
 resource "random_id" "bucket_suffix" {
   byte_length = 4
 }
@@ -17,7 +16,6 @@ resource "random_id" "bucket_suffix" {
 # -----------------------------------------------------------------------------------------
 # S3 bucket for storing uploaded files
 # -----------------------------------------------------------------------------------------
-
 module "storage_bucket" {
   source        = "./modules/s3"
   bucket_name   = "sftp-bucket-${random_id.bucket_suffix.hex}"
@@ -38,7 +36,6 @@ module "storage_bucket" {
 # -----------------------------------------------------------------------------------------
 # IAM configuration for Transfer family
 # -----------------------------------------------------------------------------------------
-
 module "transfer_role" {
   source             = "./modules/iam"
   role_name          = "transfer-family-s3-role"
@@ -128,7 +125,6 @@ module "transfer_logging_role" {
 # -----------------------------------------------------------------------------------------
 # Transfer family configuration
 # -----------------------------------------------------------------------------------------
-
 resource "aws_transfer_server" "sftp_server" {
   identity_provider_type = "SERVICE_MANAGED"
   protocols              = ["SFTP"]
@@ -141,10 +137,15 @@ resource "aws_transfer_server" "sftp_server" {
 }
 
 resource "aws_transfer_user" "sftp_user" {
-  server_id      = aws_transfer_server.sftp_server.id
-  user_name      = var.sftp_user_name
-  role           = module.transfer_role.arn
-  home_directory = "/${module.storage_bucket.id}"
+  server_id = aws_transfer_server.sftp_server.id
+  user_name = var.sftp_user_name
+  role      = module.transfer_role.arn
+  home_directory_mappings {
+    entry  = "/"
+    target = "/${module.storage_bucket.id}"
+  }
+  home_directory      = "/${module.storage_bucket.id}"
+  home_directory_type = "LOGICAL"
 }
 
 resource "aws_transfer_ssh_key" "sftp_ssh_key" {

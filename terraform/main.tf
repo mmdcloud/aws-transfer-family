@@ -84,6 +84,15 @@ module "transfer_role" {
     EOF
 }
 
+resource "aws_cloudwatch_log_group" "transfer_logs" {
+  name              = "/aws/transfer/sftp-server"
+  retention_in_days = 30
+
+  tags = {
+    Name = "transfer-family-logs"
+  }
+}
+
 module "transfer_logging_role" {
   source             = "./modules/iam"
   role_name          = "transfer-family-logging-role"
@@ -108,15 +117,21 @@ module "transfer_logging_role" {
     {
         "Version": "2012-10-17",
         "Statement": [
-            {
+              {
+                "Effect": "Allow",
                 "Action": [
-                  "logs:CreateLogGroup",
                   "logs:CreateLogStream",
                   "logs:PutLogEvents"
                 ],
-                "Resource": "arn:aws:logs:*:*:*",
-                "Effect": "Allow"
-            }        
+                "Resource": "${aws_cloudwatch_log_group.transfer_logs.arn}:*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogGroup"
+                ],
+                "Resource": "${aws_cloudwatch_log_group.transfer_logs.arn}"
+              }        
         ]
     }
     EOF

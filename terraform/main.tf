@@ -27,6 +27,12 @@ module "storage_bucket" {
       allowed_methods = ["GET"]
       allowed_origins = ["*"]
       max_age_seconds = 3000
+    },
+    {
+      allowed_headers = ["*"]
+      allowed_methods = ["PUT"]
+      allowed_origins = ["*"]
+      max_age_seconds = 3000
     }
   ]
   versioning_enabled = "Enabled"

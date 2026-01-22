@@ -1,3 +1,6 @@
 terraform output -raw sftp_private_key > sftp-key.pem
 chmod 600 sftp-key.pem
 sftp -i sftp-key.pem <SFTP_USERNAME>@<SFTP_ENDPOINT>
+put main.tf
+ls
+rm main.tf

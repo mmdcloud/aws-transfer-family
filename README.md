@@ -1,4 +1,4 @@
-# AWS SFTP Server with S3 Backend
+# 🚀 AWS SFTP Server with S3 Backend
 
 [![Terraform](https://img.shields.io/badge/Terraform-1.0%2B-623CE4?logo=terraform)](https://www.terraform.io/)
 [![AWS](https://img.shields.io/badge/AWS-Transfer%20Family-FF9900?logo=amazon-aws)](https://aws.amazon.com/aws-transfer-family/)

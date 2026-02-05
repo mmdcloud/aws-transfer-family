@@ -1,5 +1,5 @@
 output "sftp_server_endpoint" {
-  value = aws_transfer_server.sftp_server.endpoint
+  value = module.transfer_family.server_endpoint
 }
 
 output "s3_bucket_id" {

@@ -141,33 +141,70 @@ module "transfer_logging_role" {
 }
 
 # -----------------------------------------------------------------------------------------
-# Transfer family configuration
+# Transfer family configuration (MODULARIZED)
 # -----------------------------------------------------------------------------------------
-resource "aws_transfer_server" "sftp_server" {
+module "transfer_family" {
+  source = "./modules/transfer-family"
+
+  # Server Configuration
+  server_name            = "sftp-server"
   identity_provider_type = "SERVICE_MANAGED"
   protocols              = ["SFTP"]
   endpoint_type          = "PUBLIC"
   domain                 = "S3"
-  logging_role           = module.transfer_logging_role.arn
-  tags = {
-    Name = "sftp-server"
-  }
-}
+  logging_role_arn       = module.transfer_logging_role.arn
 
-resource "aws_transfer_user" "sftp_user" {
-  server_id = aws_transfer_server.sftp_server.id
-  user_name = var.sftp_user_name
-  role      = module.transfer_role.arn
-  home_directory_mappings {
-    entry  = "/"
-    target = "/${module.storage_bucket.id}"
-  }
+  # User Configuration
+  user_name           = var.sftp_user_name
+  user_role_arn       = module.transfer_role.arn
   home_directory      = "/${module.storage_bucket.id}"
   home_directory_type = "LOGICAL"
+
+  home_directory_mappings = [
+    {
+      entry  = "/"
+      target = "/${module.storage_bucket.id}"
+    }
+  ]
+
+  # SSH Key Configuration
+  ssh_public_key = trimspace(tls_private_key.tls_private_key.public_key_openssh)
+
+  # Tags
+  tags = {
+    Name        = "sftp-server"
+    Environment = "production"
+  }
 }
 
-resource "aws_transfer_ssh_key" "sftp_ssh_key" {
-  server_id = aws_transfer_server.sftp_server.id
-  user_name = aws_transfer_user.sftp_user.user_name
-  body      = trimspace(tls_private_key.tls_private_key.public_key_openssh)
-}
+# -----------------------------------------------------------------------------------------
+# Transfer family configuration
+# -----------------------------------------------------------------------------------------
+# resource "aws_transfer_server" "sftp_server" {
+#   identity_provider_type = "SERVICE_MANAGED"
+#   protocols              = ["SFTP"]
+#   endpoint_type          = "PUBLIC"
+#   domain                 = "S3"
+#   logging_role           = module.transfer_logging_role.arn
+#   tags = {
+#     Name = "sftp-server"
+#   }
+# }
+
+# resource "aws_transfer_user" "sftp_user" {
+#   server_id = aws_transfer_server.sftp_server.id
+#   user_name = var.sftp_user_name
+#   role      = module.transfer_role.arn
+#   home_directory_mappings {
+#     entry  = "/"
+#     target = "/${module.storage_bucket.id}"
+#   }
+#   home_directory      = "/${module.storage_bucket.id}"
+#   home_directory_type = "LOGICAL"
+# }
+
+# resource "aws_transfer_ssh_key" "sftp_ssh_key" {
+#   server_id = aws_transfer_server.sftp_server.id
+#   user_name = aws_transfer_user.sftp_user.user_name
+#   body      = trimspace(tls_private_key.tls_private_key.public_key_openssh)
+# }

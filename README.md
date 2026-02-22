@@ -256,10 +256,10 @@ resource "aws_s3_bucket_replication_configuration" "replication" {
 - Check username matches configuration
 
 ## 🤝 Screenshots
+<img width="1561" height="727" alt="Screenshot from 2026-02-22 07-56-32" src="https://github.com/user-attachments/assets/a694e725-c7de-4041-a76f-d356a97c1ee9" />
+<img width="1298" height="93" alt="Screenshot from 2026-02-22 07-57-27" src="https://github.com/user-attachments/assets/86c05fa0-e40e-4f12-8376-1c7e89de1b0d" />
 <img width="405" height="45" alt="Screenshot from 2026-02-22 07-58-08" src="https://github.com/user-attachments/assets/367d581b-85a4-4870-8483-a1c7b14400ac" />
 <img width="1399" height="290" alt="Screenshot from 2026-02-22 08-00-14" src="https://github.com/user-attachments/assets/34c1e1c1-0375-4b45-a215-71b17e22c3b6" />
-<img width="1298" height="93" alt="Screenshot from 2026-02-22 07-57-27" src="https://github.com/user-attachments/assets/86c05fa0-e40e-4f12-8376-1c7e89de1b0d" />
-<img width="1561" height="727" alt="Screenshot from 2026-02-22 07-56-32" src="https://github.com/user-attachments/assets/a694e725-c7de-4041-a76f-d356a97c1ee9" />
 
 ## 🤝 Contributing
 

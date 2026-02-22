@@ -255,6 +255,12 @@ resource "aws_s3_bucket_replication_configuration" "replication" {
 - Verify public key is correctly uploaded
 - Check username matches configuration
 
+## 🤝 Screenshots
+![Screenshot](screenshots/Screenshot from 2026-02-13 11-03-26.png)
+![Screenshot](screenshots/Screenshot from 2026-02-22 07-56-32.png)
+![Screenshot](screenshots/Screenshot from 2026-02-22 07-57-27.png)
+![Screenshot](screenshots/Screenshot from 2026-02-22 07-58-08.png)
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:

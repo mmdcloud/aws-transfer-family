@@ -7,7 +7,7 @@ resource "tls_private_key" "tls_private_key" {
 }
 
 # -----------------------------------------------------------------------------------------
-# Random configuration
+# Random ID configuration
 # -----------------------------------------------------------------------------------------
 resource "random_id" "bucket_suffix" {
   byte_length = 4

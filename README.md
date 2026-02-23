@@ -288,7 +288,3 @@ For issues and questions:
 - Open an issue in the GitHub repository
 - Review existing issues and discussions
 - Check AWS Transfer Family documentation
-
----
-
-**Note**: This configuration generates and manages SSH keys automatically. In production, consider using your own key management solution and rotating keys regularly.

@@ -173,6 +173,5 @@ module "transfer_family" {
   # Tags
   tags = {
     Name        = "sftp-server"
-    Environment = "production"
   }
 }

@@ -255,6 +255,13 @@ resource "aws_s3_bucket_replication_configuration" "replication" {
 - Verify public key is correctly uploaded
 - Check username matches configuration
 
+## 🤝 Screenshots
+<img width="1561" height="727" alt="Screenshot from 2026-02-22 07-56-32" src="https://github.com/user-attachments/assets/a694e725-c7de-4041-a76f-d356a97c1ee9" />
+<img width="1298" height="93" alt="Screenshot from 2026-02-22 07-57-27" src="https://github.com/user-attachments/assets/86c05fa0-e40e-4f12-8376-1c7e89de1b0d" />
+<img width="405" height="45" alt="Screenshot from 2026-02-22 07-58-08" src="https://github.com/user-attachments/assets/367d581b-85a4-4870-8483-a1c7b14400ac" />
+<img width="1399" height="290" alt="Screenshot from 2026-02-22 08-00-14" src="https://github.com/user-attachments/assets/34c1e1c1-0375-4b45-a215-71b17e22c3b6" />
+<img width="1631" height="753" alt="Screenshot from 2026-02-23 13-48-18" src="https://github.com/user-attachments/assets/81c62345-36cc-486d-a852-da5fd8cedf81" />
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:
@@ -281,7 +288,3 @@ For issues and questions:
 - Open an issue in the GitHub repository
 - Review existing issues and discussions
 - Check AWS Transfer Family documentation
-
----
-
-**Note**: This configuration generates and manages SSH keys automatically. In production, consider using your own key management solution and rotating keys regularly.

@@ -35,6 +35,7 @@ resource "aws_s3_bucket_cors_configuration" "cors" {
       max_age_seconds = cors_rule.value["max_age_seconds"]
     }
   }
+  depends_on = [aws_s3_bucket.bucket] 
 }
 
 # Bucket policy

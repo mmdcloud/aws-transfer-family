@@ -172,6 +172,6 @@ module "transfer_family" {
 
   # Tags
   tags = {
-    Name        = "sftp-server"
+    Name = "sftp-server"
   }
 }

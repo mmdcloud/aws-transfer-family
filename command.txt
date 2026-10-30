@@ -1,6 +1,21 @@
+# =============================================================================
+# Option A: Production Mode (Client-Generated Key - Recommended)
+# =============================================================================
+# 1. Generate client key pair locally (private key stays on client machine only):
+# ssh-keygen -t ed25519 -C "sftp-user" -f sftp-key
+# 2. Add the contents of sftp-key.pub to terraform.tfvars:
+# ssh_public_key = "<contents of sftp-key.pub>"
+# 3. Connect:
+# sftp -i sftp-key <SFTP_USERNAME>@<SFTP_ENDPOINT>
+
+# =============================================================================
+# Option B: Development / Testing Fallback (Terraform-Generated Key)
+# =============================================================================
 terraform output -raw sftp_private_key > sftp-key.pem
 chmod 600 sftp-key.pem
 sftp -i sftp-key.pem <SFTP_USERNAME>@<SFTP_ENDPOINT>
+
+# File Transfer operations
 put main.tf
 ls
 rm main.tf

@@ -52,6 +52,23 @@ variable "logging_role_arn" {
   type        = string
 }
 
+variable "security_policy_name" {
+  description = "Specifies the name of the security policy that is attached to the server"
+  type        = string
+  default     = "TransferSecurityPolicy-2024-01"
+}
+
+variable "endpoint_details" {
+  description = "The virtual private cloud (VPC) endpoint settings for your server"
+  type = object({
+    vpc_id                 = optional(string)
+    subnet_ids             = optional(list(string))
+    address_allocation_ids = optional(list(string))
+    security_group_ids     = optional(list(string))
+  })
+  default = null
+}
+
 # -----------------------------------------------------------------------------------------
 # Transfer User Variables
 # -----------------------------------------------------------------------------------------
@@ -63,6 +80,12 @@ variable "user_name" {
 variable "user_role_arn" {
   description = "ARN of IAM role for the Transfer Family user to access S3"
   type        = string
+}
+
+variable "user_policy" {
+  description = "A scope-down policy for restricting user access to specific S3 prefixes"
+  type        = string
+  default     = null
 }
 
 variable "home_directory" {
@@ -96,10 +119,11 @@ variable "ssh_public_key" {
   description = "SSH public key for the user authentication"
   type        = string
   sensitive   = true
+  default     = null
 
   validation {
-    condition     = can(regex("^ssh-(rsa|ed25519|ecdsa)", var.ssh_public_key))
-    error_message = "SSH public key must be in valid OpenSSH format (starting with ssh-rsa, ssh-ed25519, or ssh-ecdsa)"
+    condition     = var.ssh_public_key == null || var.ssh_public_key == "" || can(regex("^ssh-(rsa|ed25519|ecdsa)", var.ssh_public_key))
+    error_message = "SSH public key must be null, empty, or in valid OpenSSH format (starting with ssh-rsa, ssh-ed25519, or ssh-ecdsa)"
   }
 }
 

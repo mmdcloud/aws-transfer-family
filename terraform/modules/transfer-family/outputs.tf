@@ -39,7 +39,7 @@ output "user_arn" {
 # -----------------------------------------------------------------------------------------
 output "ssh_key_id" {
   description = "ID of the SSH key"
-  value       = aws_transfer_ssh_key.this.id
+  value       = try(aws_transfer_ssh_key.this[0].id, null)
 }
 
 # -----------------------------------------------------------------------------------------

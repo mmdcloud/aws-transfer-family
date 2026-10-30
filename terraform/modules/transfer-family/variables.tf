@@ -115,16 +115,17 @@ variable "home_directory_mappings" {
 # -----------------------------------------------------------------------------------------
 # SSH Key Variables
 # -----------------------------------------------------------------------------------------
+variable "create_ssh_key" {
+  description = "Whether to create and register an SSH key for the user"
+  type        = bool
+  default     = true
+}
+
 variable "ssh_public_key" {
   description = "SSH public key for the user authentication"
   type        = string
   sensitive   = true
   default     = null
-
-  validation {
-    condition     = var.ssh_public_key == null || var.ssh_public_key == "" || can(regex("^ssh-(rsa|ed25519|ecdsa)", var.ssh_public_key))
-    error_message = "SSH public key must be null, empty, or in valid OpenSSH format (starting with ssh-rsa, ssh-ed25519, or ssh-ecdsa)"
-  }
 }
 
 # -----------------------------------------------------------------------------------------

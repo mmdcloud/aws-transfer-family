@@ -25,6 +25,7 @@ resource "aws_s3_bucket_versioning" "versioning" {
 
 # Bucket cors configuration
 resource "aws_s3_bucket_cors_configuration" "cors" {
+  count  = length(var.cors) > 0 ? 1 : 0
   bucket = aws_s3_bucket.bucket.id
   dynamic "cors_rule" {
     for_each = var.cors
@@ -47,6 +48,7 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
 
 # Specifying bucket notification configuration
 resource "aws_s3_bucket_notification" "bucket_notification" {
+  count  = (length(var.bucket_notification.queue) > 0 || length(var.bucket_notification.lambda_function) > 0) ? 1 : 0
   bucket = aws_s3_bucket.bucket.bucket
   dynamic "queue" {
     for_each = var.bucket_notification.queue

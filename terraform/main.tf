@@ -182,13 +182,15 @@
 # Fallback: Generates RSA 4096-bit key only if var.ssh_public_key is not supplied.
 # -----------------------------------------------------------------------------------------
 resource "tls_private_key" "tls_private_key" {
-  count     = var.ssh_public_key == null || var.ssh_public_key == "" ? 1 : 0
+  count     = var.create_ssh_key && (var.ssh_public_key == null || var.ssh_public_key == "") ? 1 : 0
   algorithm = "RSA"
   rsa_bits  = 4096
 }
 
 locals {
-  effective_ssh_public_key = var.ssh_public_key != null && var.ssh_public_key != "" ? trimspace(var.ssh_public_key) : (length(tls_private_key.tls_private_key) > 0 ? trimspace(tls_private_key.tls_private_key[0].public_key_openssh) : null)
+  effective_ssh_public_key = var.create_ssh_key ? (
+    var.ssh_public_key != null && var.ssh_public_key != "" ? trimspace(var.ssh_public_key) : tls_private_key.tls_private_key[0].public_key_openssh
+  ) : null
 }
 
 # -----------------------------------------------------------------------------------------
@@ -437,6 +439,7 @@ module "transfer_family" {
   ]
 
   # SSH Key Configuration
+  create_ssh_key = var.create_ssh_key
   ssh_public_key = local.effective_ssh_public_key
 
   # Tags

@@ -9,6 +9,12 @@ variable "sftp_user_name" {
   type        = string
 }
 
+variable "create_ssh_key" {
+  description = "Whether to register an SSH public key for the SFTP user"
+  type        = bool
+  default     = true
+}
+
 variable "ssh_public_key" {
   description = "Client-provided SSH public key (OpenSSH format). If provided, tls_private_key is bypassed for security."
   type        = string

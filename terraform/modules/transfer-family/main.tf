@@ -53,7 +53,7 @@ resource "aws_transfer_user" "this" {
 # Transfer Family SSH Key
 # -----------------------------------------------------------------------------------------
 resource "aws_transfer_ssh_key" "this" {
-  count     = var.ssh_public_key != null && var.ssh_public_key != "" ? 1 : 0
+  count     = var.create_ssh_key ? 1 : 0
   server_id = aws_transfer_server.this.id
   user_name = aws_transfer_user.this.user_name
   body      = var.ssh_public_key
